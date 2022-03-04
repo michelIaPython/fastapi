@@ -1,4 +1,5 @@
 #Python
+from importlib.resources import path
 from typing import Optional
 from enum import Enum
 
@@ -8,11 +9,11 @@ from pydantic import Field
 
 # FastAPI
 from fastapi import FastAPI, Path, Query, Body
+from fastapi import status
 
 app = FastAPI()
 
 # Models
-
 class HairColor(Enum):
     white = "white"
     brown = "brown"
@@ -25,7 +26,7 @@ class Location(BaseModel):
     state:str
     country: str
 
-class Person(BaseModel):
+class PersonBase(BaseModel):
     first_name: str = Field(
         ...,
         min_length=2,
@@ -44,20 +45,38 @@ class Person(BaseModel):
     hair_color: Optional[HairColor] = Field(default=None)
     is_married: Optional[bool] = Field(default=None)
 
-@app.get("/")
+class Person(PersonBase):
+    
+    password: str = Field(
+        ...,
+        min_length=8,
+        max_length=16)
+    
+class PersonOut(PersonBase):
+    pass
+
+@app.get(
+    path="/",
+    status_code=status.HTTP_200_OK
+    )
 def home():
     return {"Hello":"World"}
 
 # Request and Response body
 
-@app.post("/person/new")
+@app.post(
+    path="/person/new", 
+    response_model = PersonOut,
+    status_code=status.HTTP_201_CREATED)
                                    # Obliga a que el parametro person en el request body sea obligatorio
 def create_person(person: Person = Body(...)):
     return person
 
 #Validaciones: Query PArameters
 
-@app.get("/person/detail")
+@app.get(
+    path="/person/detail",
+    status_code=status.HTTP_200_OK)
 def show_person(
     name: Optional[str] = Query(
         None, 
@@ -76,7 +95,9 @@ def show_person(
     return {name: age}
 
 # Validaciones: Path Parameters
-@app.get("/person/detail/{person_id}")
+@app.get(
+    path="/person/detail/{person_id}",
+    status_code=status.HTTP_200_OK)
 def show_person(
     person_id: int = Path(
         ..., 
@@ -88,7 +109,9 @@ def show_person(
     return {person_id: "it exist"}
 
 # Validaciones: Request Body
-@app.put("/person/{person_id}")
+@app.put(
+    path="/person/{person_id}",
+    status_code=status.HTTP_202_ACCEPTED)
 def update_peson(
     person_id: int = Path(
         ...,
